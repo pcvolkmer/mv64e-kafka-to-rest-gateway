@@ -1,0 +1,46 @@
+[package]
+name = "mv64e-kafka-to-rest-gateway"
+version = "0.1.0"
+edition = "2024"
+authors = ["Paul-Christian Volkmer <code@pcvolkmer.de>"]
+license = "AGPL-3.0"
+description = "Send MV64e receive Kafka records and send requests with DNPM V2.1 payload to DNPM:DIP"
+
+# Dependencies
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+reqwest = { version = "0.12", features = ["rustls-tls", "json"], default-features = false }
+tokio = { version = "1.47", features = ["rt-multi-thread", "macros", "time"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rdkafka = { version = "0.38.0", features = ["cmake-build", "libz-static", "ssl-vendored"] }
+# DTOs
+mv64e-mtb-dto = { git = "https://github.com/dnpm-dip/mv64e-mtb-dto-rs", branch = "master" }
+
+[dev-dependencies]
+tower = "0.5"
+http-body-util = "0.1"
+mockall = "0.13"
+
+# Lints
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+pedantic = { level = "warn", priority = -1 }
+
+[lints.rust]
+unused_must_use = "deny"
+
+# Profiles
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+lto = "thin"
+strip = true
+panic = "abort"
