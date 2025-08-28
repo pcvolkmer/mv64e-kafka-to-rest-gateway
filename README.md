@@ -45,7 +45,8 @@ Die Anwendung lässt sich auch mit Umgebungsvariablen konfigurieren.
 
 * `KAFKA_BOOTSTRAP_SERVERS`: Zu verwendende Kafka-Bootstrap-Server als kommagetrennte Liste
 * `KAFKA_TOPIC`: Zu verwendendes Topic zum Warten auf neue Anfragen. Standardwert: `etl-processor_output`
-* `KAFKA_RESPONSE_TOPIC`: Zu verwendendes Topic zum Versenden von Antworten. Standardwert: `etl-processor_output_response`
+* `KAFKA_RESPONSE_TOPIC`: Zu verwendendes Topic zum Versenden von Antworten. Standardwert:
+  `etl-processor_output_response`
 * `KAFKA_GROUP_ID`: Die Kafka Group ID. Standardwert: `mv64e-kafka-to-rest-gateway`
 * `DNPM_DIP_URI`: URI für DNPM:DIP API Requests (z.B. http://localhost/api)
 * `DNPM_DIP_USERNAME`: Benutzername für DNPM:DIP (wenn erforderlich)
@@ -57,3 +58,34 @@ Optionale Umgebungsvariablen - wenn angegeben wird eine SSL-Verbindung zu Kafka 
 * `KAFKA_SSL_CERT_FILE`: SSL Certificate Datei
 * `KAFKA_SSL_KEY_FILE`: SSL Key Datei
 * `KAFKA_SSL_KEY_PASSWORD`: SSL Key Passwort (wenn benötigt)
+
+## Anforderungen an eingehende Kafka-Records
+
+Kafka-Records müssen eine(n)
+
+* **Key** im JSON-Format mit einem Wert für `patientID` haben.
+* **Header** mit Wert für`requestId` haben, damit eine ordnungsgemäße Zuordnung zu einer Anfrage im
+  **mv64e-etl-processor** stattfinden kann.
+  Ist dies nicht gegeben, kann die Rückantwort nicht einer eingehenden Anfrage zugeordnet werden. 
+* **Payload** haben, die dem DNPM-Datenmodell 2.1 entspricht.
+
+Eine Prüfung auf MV- oder Forschungs-Consent findet nicht statt.
+
+## HTTP-Requests zu DNPM:DIP
+
+Kann ein HTTP-Request nicht beantwortet werden, wird der zugehörige Kafka-Record nicht quittiert.
+Bei einem Neustart der Anwendung werden alle nicht quittierten Records erneut verarbeitet.
+
+Eine Antwort wird über das Kafka-Response-Topic nur dann übertragen, wenn von DNPM:DIP eine der folgenden
+HTTP-Status-Codes verwendet wurde:
+
+| Case                                  | Status Code                                        |
+|---------------------------------------|----------------------------------------------------|
+| Data OK                               | `200 OK`                                           |
+| Data acceptable with quality issues 	 | `201 Created` with JSON issue report               |
+| Unacceptable Issues                   | `422 Unprocessable Content` with JSON issue report |
+| Fatal Issues Detected                 | `400 Bad Request` with JSON issue report           |
+
+Siehe auch: https://github.com/dnpm-dip/api-gateway/tree/main/app/controllers#upload-a-patient-record
+
+Für alle anderen Status-Codes wird der eingehende Kafka-Record nicht quittiert und wird erneut bearbeitet werden.
