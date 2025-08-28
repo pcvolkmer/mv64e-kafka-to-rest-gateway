@@ -13,7 +13,7 @@ use std::error::Error;
 use std::string::ToString;
 use std::sync::LazyLock;
 use std::time::Duration;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 mod cli;
 mod http_client;
@@ -174,9 +174,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     producer.send(response_record, Duration::from_secs(1)).await
                                 };
 
-                                consumer
-                                    .commit_message(&msg, CommitMode::Async)
-                                    .expect("Cound not commit message: {}");
+                                if response.status_code == 200 || response.status_code == 201 || response.status_code == 400 || response.status_code == 422 {
+                                    consumer
+                                        .commit_message(&msg, CommitMode::Async)
+                                        .expect("Cound not commit message: {}");
+                                } else {
+                                    warn!("Unexpected Status Code for Request '{}': HTTP {}", &request_id, response.status_code);
+                                }
                             }
                         }
                     }
