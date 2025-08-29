@@ -156,14 +156,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     )
                                     .unwrap_or(json!({})),
                                 };
-
-                                let payload = serde_json::to_string(&response_payload)?;
+                                let response_payload = serde_json::to_string(&response_payload)?;
 
                                 let response_record = FutureRecord::to(&CONFIG.response_topic)
                                     .key(key)
-                                    .payload(&payload);
+                                    .payload(&response_payload);
 
-                                let _ = if let Some(headers) = msg.headers() {
+                                match if let Some(headers) = msg.headers() {
                                     producer
                                         .send(
                                             response_record.headers(headers.detach()),
@@ -172,7 +171,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         .await
                                 } else {
                                     producer.send(response_record, Duration::from_secs(1)).await
-                                };
+                                } {
+                                    Ok(_) => {
+                                        info!("Response for '{request_id}' sent successfully");
+                                    }
+                                    Err((err, _)) => {
+                                        error!("Could not send response for '{request_id}': {err}");
+                                    }
+                                }
 
                                 if response.status_code == 200 || response.status_code == 201 || response.status_code == 400 || response.status_code == 422 {
                                     consumer
