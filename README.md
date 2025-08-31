@@ -9,6 +9,8 @@ Gegenstück zu [mv64e-rest-to-kafka-gateway](https://github.com/pcvolkmer/mv64e-
 
 Verwendung im Zusammenspiel mit https://github.com/pcvolkmer/mv64e-etl-processor
 
+![Modell DNPM-ETL-Strecke](docs/etl.jpeg)
+
 ## Konfiguration
 
 Beim Start der Anwendung können Parameter angegeben werden.
