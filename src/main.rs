@@ -138,9 +138,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     while let Ok(msg) = consumer.recv().await {
         if let Some(Ok(payload)) = msg.payload_view::<str>() {
             if let Some(Ok(key)) = msg.key_view::<str>() {
-                let payload = if let Ok(payload) = serde_json::from_str::<Mtb>(payload) {
-                    payload
-                } else {
+                let Ok(payload) = serde_json::from_str::<Mtb>(payload) else {
                     error!("Error deserializing payload");
                     continue;
                 };
