@@ -47,8 +47,8 @@ impl HttpClient {
             .client
             .post(format!("{}/mtb/etl/patient-record", &self.base_url))
             .basic_auth(
-                &self.username.clone().unwrap_or_default(),
-                Some(self.password.clone().unwrap_or_default()),
+                self.username.clone().unwrap_or("anonymous".to_string()),
+                self.password.clone(),
             )
             .timeout(Duration::from_secs(5))
             .json(&mtb)
@@ -70,8 +70,8 @@ impl HttpClient {
             .client
             .delete(format!("{}/mtb/etl/patient/{}", &self.base_url, patient_id))
             .basic_auth(
-                &self.username.clone().unwrap_or_default(),
-                Some(self.password.clone().unwrap_or_default()),
+                self.username.clone().unwrap_or("anonymous".to_string()),
+                self.password.clone(),
             )
             .timeout(Duration::from_secs(5))
             .send()
