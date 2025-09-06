@@ -53,7 +53,9 @@ fn extract_request_id(msg: &BorrowedMessage) -> Option<String> {
         None => None,
         Some(headers) => {
             if let Some(value) = headers
-                .iter().find(|header| header.key == "requestId")?.value
+                .iter()
+                .find(|header| header.key == "requestId")?
+                .value
             {
                 match str::from_utf8(value) {
                     Ok(value) => Some(value.to_string()),
@@ -68,7 +70,7 @@ fn extract_request_id(msg: &BorrowedMessage) -> Option<String> {
 
 fn client_config() -> ClientConfig {
     let mut client_config = ClientConfig::new();
-    client_config.set("bootstrap.servers", &CONFIG.bootstrap_servers.to_string());
+    client_config.set("bootstrap.servers", &CONFIG.bootstrap_servers);
 
     if CONFIG.ssl_cert_file.is_some() || CONFIG.ssl_key_file.is_some() {
         client_config
@@ -134,73 +136,71 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .create()?;
 
     while let Ok(msg) = consumer.recv().await {
-        match msg.payload_view::<str>() {
-            Some(Ok(payload)) => match msg.key_view::<str>() {
-                Some(Ok(key)) => {
-                    let payload = if let Ok(payload) = serde_json::from_str::<Mtb>(&payload) {
-                        payload
-                    } else {
-                        error!("Error deserializing payload");
-                        continue;
-                    };
+        if let Some(Ok(payload)) = msg.payload_view::<str>() {
+            if let Some(Ok(key)) = msg.key_view::<str>() {
+                let payload = if let Ok(payload) = serde_json::from_str::<Mtb>(payload) {
+                    payload
+                } else {
+                    error!("Error deserializing payload");
+                    continue;
+                };
 
-                    let request_id = extract_request_id(&msg).unwrap_or_default();
+                let request_id = extract_request_id(&msg).unwrap_or_default();
 
-                    match handle_record(payload).await {
-                        Err(err) => error!("{}", err),
-                        Ok(response) => {
-                            let response_payload = ResponsePayload {
-                                request_id: request_id.to_string(),
-                                status_code: response.status_code,
-                                status_body: serde_json::from_str::<Value>(&response.status_body)
-                                    .unwrap_or(json!({})),
-                            };
-                            let response_payload = serde_json::to_string(&response_payload)?;
+                match handle_record(payload).await {
+                    Err(err) => error!("{}", err),
+                    Ok(response) => {
+                        let response_payload = ResponsePayload {
+                            request_id: request_id.to_string(),
+                            status_code: response.status_code,
+                            status_body: serde_json::from_str::<Value>(&response.status_body)
+                                .unwrap_or(json!({})),
+                        };
+                        let response_payload = serde_json::to_string(&response_payload)?;
 
-                            let response_record = FutureRecord::to(&CONFIG.response_topic)
-                                .key(key)
-                                .payload(&response_payload);
+                        let response_record = FutureRecord::to(&CONFIG.response_topic)
+                            .key(key)
+                            .payload(&response_payload);
 
-                            match if let Some(headers) = msg.headers() {
-                                producer
-                                    .send(
-                                        response_record.headers(headers.detach()),
-                                        Duration::from_secs(1),
-                                    )
-                                    .await
-                            } else {
-                                producer.send(response_record, Duration::from_secs(1)).await
-                            } {
-                                Ok(_) => {
-                                    info!("Response for '{request_id}' sent successfully");
-                                }
-                                Err((err, _)) => {
-                                    error!("Could not send response for '{request_id}': {err}");
-                                }
+                        match if let Some(headers) = msg.headers() {
+                            producer
+                                .send(
+                                    response_record.headers(headers.detach()),
+                                    Duration::from_secs(1),
+                                )
+                                .await
+                        } else {
+                            producer.send(response_record, Duration::from_secs(1)).await
+                        } {
+                            Ok(_) => {
+                                info!("Response for '{request_id}' sent successfully");
                             }
-
-                            if response.status_code == 200
-                                || response.status_code == 201
-                                || response.status_code == 400
-                                || response.status_code == 422
-                            {
-                                consumer
-                                    .commit_message(&msg, CommitMode::Async)
-                                    .expect("Cound not commit message: {}");
-                            } else {
-                                warn!(
-                                    "Unexpected Status Code for Request '{}': HTTP {}",
-                                    &request_id, response.status_code
-                                );
+                            Err((err, _)) => {
+                                error!("Could not send response for '{request_id}': {err}");
                             }
+                        }
+
+                        if response.status_code == 200
+                            || response.status_code == 201
+                            || response.status_code == 400
+                            || response.status_code == 422
+                        {
+                            consumer.commit_message(&msg, CommitMode::Async)?;
+                        } else {
+                            warn!(
+                                "Unexpected Status Code for Request '{}': HTTP {}",
+                                &request_id, response.status_code
+                            );
                         }
                     }
                 }
-                _ => error!("Error getting key"),
-            },
-            _ => error!("Error getting payload"),
+            } else {
+                error!("Error getting key");
+            }
+        } else {
+            error!("Error getting payload");
         }
-    };
+    }
 
     Ok(())
 }
