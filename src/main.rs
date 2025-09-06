@@ -178,11 +178,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
 
-                        if response.status_code == 200
-                            || response.status_code == 201
-                            || response.status_code == 400
-                            || response.status_code == 422
-                        {
+                        if response.has_valid_response_code() {
                             consumer.commit_message(&msg, CommitMode::Async)?;
                         } else {
                             warn!(

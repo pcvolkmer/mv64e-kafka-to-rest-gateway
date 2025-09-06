@@ -7,6 +7,15 @@ pub struct HttpResponse {
     pub status_body: String,
 }
 
+impl HttpResponse {
+    pub fn has_valid_response_code(&self) -> bool {
+        self.status_code == 200
+            || self.status_code == 201
+            || self.status_code == 400
+            || self.status_code == 422
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HttpClientError(String);
 
