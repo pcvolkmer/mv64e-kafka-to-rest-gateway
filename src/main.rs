@@ -118,8 +118,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .set("auto.offset.reset", "earliest")
         .set("enable.auto.commit", "false")
         .set_log_level(RDKafkaLogLevel::Debug)
-        .create()
-        .expect("Kafka consumer created");
+        .create()?;
 
     let topic: &str = &CONFIG.topic.clone();
 
@@ -130,10 +129,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut producer_client_config = client_config();
 
     let producer: &FutureProducer = &producer_client_config
-        .set("bootstrap.servers", &CONFIG.bootstrap_servers.to_string())
+        .set("bootstrap.servers", &CONFIG.bootstrap_servers)
         .set("message.timeout.ms", "5000")
-        .create()
-        .expect("Producer creation error");
+        .create()?;
 
     while let Ok(msg) = consumer.recv().await {
         match msg.payload_view::<str>() {
