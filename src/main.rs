@@ -33,7 +33,7 @@ async fn handle_record(payload: Mtb) -> Result<HttpResponse, HttpClientError> {
         &CONFIG.dnpm_dip_uri,
         CONFIG.dnpm_dip_username.clone(),
         CONFIG.dnpm_dip_password.clone(),
-    );
+    )?;
 
     if let Some(metadata) = &payload.metadata {
         if !metadata.model_project_consent.provisions.is_empty()

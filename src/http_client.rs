@@ -24,11 +24,15 @@ pub struct HttpClient {
 }
 
 impl HttpClient {
-    pub fn new(base_url: &str, username: Option<String>, password: Option<String>) -> Self {
+    pub fn new(
+        base_url: &str,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> Result<Self, HttpClientError> {
         let user_agent_string = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
-        Self {
-            base_url: if base_url.ends_with("/") {
+        Ok(Self {
+            base_url: if base_url.ends_with('/') {
                 base_url[0..base_url.len() - 2].to_string()
             } else {
                 base_url.to_string()
@@ -38,8 +42,8 @@ impl HttpClient {
             client: reqwest::Client::builder()
                 .user_agent(user_agent_string)
                 .build()
-                .expect("Failed to build HTTP client"),
-        }
+                .map_err(|_| HttpClientError("Failed to build HTTP client".to_string()))?,
+        })
     }
 
     pub async fn send_mtb_request(&self, mtb: &Mtb) -> Result<HttpResponse, HttpClientError> {
