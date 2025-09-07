@@ -151,7 +151,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             continue;
         };
 
-        let request_id = extract_request_id(&msg).unwrap_or_default();
+        let Some(request_id) = extract_request_id(&msg) else {
+            error!("Error getting request_id");
+            continue;
+        };
 
         match handle_record(payload).await {
             Err(err) => error!("{}", err),

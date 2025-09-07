@@ -68,7 +68,8 @@ Kafka-Records müssen eine(n)
 * **Key** im JSON-Format mit einem Wert für `patientID` haben.
 * **Header** mit Wert für`requestId` haben, damit eine ordnungsgemäße Zuordnung zu einer Anfrage im
   **mv64e-etl-processor** stattfinden kann.
-  Ist dies nicht gegeben, kann die Rückantwort nicht einer eingehenden Anfrage zugeordnet werden. 
+  Ist dies nicht gegeben, kann die Rückantwort nicht einer eingehenden Anfrage zugeordnet werden.
+  Anfragen ohne `requestId` im Header werden abgelehnt.
 * **Payload** haben, die dem DNPM-Datenmodell 2.1 entspricht.
 
 Eine Prüfung auf MV- oder Forschungs-Consent findet nicht statt.
