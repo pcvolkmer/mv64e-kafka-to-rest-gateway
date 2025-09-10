@@ -165,8 +165,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     status_body: serde_json::from_str::<Value>(&response.status_body)
                         .unwrap_or(json!({})),
                 };
-                let response_payload = serde_json::to_string(&response_payload)?;
-
+                let Ok(response_payload) = serde_json::to_string(&response_payload) else {
+                    error!("Error serializing response");
+                    continue;
+                };
                 let response_record = FutureRecord::to(&CONFIG.response_topic)
                     .key(key)
                     .payload(&response_payload);
