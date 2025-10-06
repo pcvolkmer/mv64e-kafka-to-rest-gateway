@@ -1,6 +1,9 @@
 use mv64e_mtb_dto::Mtb;
+use reqwest::Certificate;
 use std::fmt::{Debug, Display, Formatter};
+use std::fs;
 use std::time::Duration;
+use tracing::info;
 
 pub struct HttpResponse {
     pub status_code: u16,
@@ -37,6 +40,7 @@ impl HttpClient {
         base_url: &str,
         username: Option<String>,
         password: Option<String>,
+        ssl_ca_file: Option<String>,
     ) -> Result<Self, HttpClientError> {
         let user_agent_string = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
@@ -46,6 +50,33 @@ impl HttpClient {
         #[cfg(debug_assertions)]
         let accept_invalid_certificates = true;
 
+        let client_builder = reqwest::Client::builder()
+            .user_agent(user_agent_string)
+            .danger_accept_invalid_certs(accept_invalid_certificates);
+
+        let client_builder = if ssl_ca_file.is_some() {
+            info!("Use HTTPS to connect to DNPM:DIP");
+            let cert = match ssl_ca_file {
+                Some(path) => match fs::read(path.as_str()) {
+                    Ok(file) => Certificate::from_pem(&file)
+                        .map_err(|_| HttpClientError("Failed to build HTTP client".to_string()))?,
+                    _ => {
+                        return Err(HttpClientError(
+                            "Failed to load certificate from a ca-file".to_string(),
+                        ))?;
+                    }
+                },
+                _ => {
+                    return Err(HttpClientError(
+                        "Failed to load certificate from a ca-file".to_string(),
+                    ))?;
+                }
+            };
+            client_builder.add_root_certificate(cert)
+        } else {
+            client_builder
+        };
+
         Ok(Self {
             base_url: if base_url.ends_with('/') {
                 base_url[0..base_url.len() - 2].to_string()
@@ -54,9 +85,7 @@ impl HttpClient {
             },
             username,
             password,
-            client: reqwest::Client::builder()
-                .user_agent(user_agent_string)
-                .danger_accept_invalid_certs(accept_invalid_certificates)
+            client: client_builder
                 .build()
                 .map_err(|_| HttpClientError("Failed to build HTTP client".to_string()))?,
         })

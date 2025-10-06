@@ -52,6 +52,12 @@ pub struct Cli {
     pub dnpm_dip_password: Option<String>,
     #[arg(
         long,
+        env = "DNPM_DIP_CA_FILE",
+        help = "CA file for HTTPS connection to DNPM:DIP"
+    )]
+    pub dnpm_dip_ca_file: Option<String>,
+    #[arg(
+        long,
         env = "KAFKA_SSL_CA_FILE",
         help = "CA file for SSL connection to Kafka"
     )]

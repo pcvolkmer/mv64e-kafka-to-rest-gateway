@@ -33,6 +33,8 @@ Options:
           DNPM:DIP Username [env: DNPM_DIP_USERNAME=]
       --dnpm-dip-password <DNPM_DIP_PASSWORD>
           DNPM:DIP Password [env: DNPM_DIP_PASSWORD=]
+      --dnpm-dip-ca-file <DNPM_DIP_CA_FILE>
+          CA file for HTTPS connection to DNPM:DIP [env: DNPM_DIP_CA_FILE=]
       --ssl-ca-file <SSL_CA_FILE>
           CA file for SSL connection to Kafka [env: KAFKA_SSL_CA_FILE=]
       --ssl-cert-file <SSL_CERT_FILE>
@@ -51,10 +53,15 @@ Die Anwendung lässt sich auch mit Umgebungsvariablen konfigurieren.
   `etl-processor_output_response`
 * `KAFKA_GROUP_ID`: Die Kafka Group ID. Standardwert: `mv64e-kafka-to-rest-gateway`
 * `DNPM_DIP_URI`: URI für DNPM:DIP API Requests (z.B. http://localhost/api)
+
+Optionale Umgebungsvariablen für DNP:DIP - wenn angegeben wird ein eigene eigene RootCA für HTTPS-Verbindung
+verwendet und angegebener Benutzername und Password benutzt.
+
 * `DNPM_DIP_USERNAME`: Benutzername für DNPM:DIP (wenn erforderlich)
 * `DNPM_DIP_PASSWORD`: Passwort für DNPM:DIP (wenn erforderlich)
+* `DNPM_DIP_CA_FILE`: Angabe 
 
-Optionale Umgebungsvariablen - wenn angegeben wird eine SSL-Verbindung zu Kafka aufgebaut.
+Optionale Umgebungsvariablen für Kafka - wenn angegeben wird eine SSL-Verbindung zu Kafka aufgebaut.
 
 * `KAFKA_SSL_CA_FILE`: CA für SSL-Verbindungen
 * `KAFKA_SSL_CERT_FILE`: SSL Certificate Datei

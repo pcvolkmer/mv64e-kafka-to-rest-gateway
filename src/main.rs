@@ -33,6 +33,7 @@ async fn handle_record(payload: Mtb) -> Result<HttpResponse, HttpClientError> {
         &CONFIG.dnpm_dip_uri,
         CONFIG.dnpm_dip_username.clone(),
         CONFIG.dnpm_dip_password.clone(),
+        CONFIG.dnpm_dip_ca_file.clone()
     )?;
 
     if let Some(metadata) = &payload.metadata {
@@ -216,6 +217,7 @@ static CONFIG: LazyLock<Cli> = LazyLock::new(|| Cli {
     dnpm_dip_uri: "http://localhost:8000/api".to_string(),
     dnpm_dip_username: None,
     dnpm_dip_password: None,
+    dnpm_dip_ca_file: None,
     ssl_ca_file: None,
     ssl_cert_file: None,
     ssl_key_file: None,
