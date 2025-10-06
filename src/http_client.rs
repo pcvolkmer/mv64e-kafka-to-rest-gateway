@@ -78,17 +78,21 @@ impl HttpClient {
         };
 
         Ok(Self {
-            base_url: if base_url.ends_with('/') {
-                base_url[0..base_url.len() - 2].to_string()
-            } else {
-                base_url.to_string()
-            },
+            base_url: Self::base_url(base_url),
             username,
             password,
             client: client_builder
                 .build()
                 .map_err(|_| HttpClientError("Failed to build HTTP client".to_string()))?,
         })
+    }
+
+    fn base_url(base_url: &str) -> String {
+        if base_url.ends_with('/') {
+            Self::base_url(base_url[0..base_url.len() - 1].to_string().as_str())
+        } else {
+            base_url.to_string()
+        }
     }
 
     pub async fn send_mtb_request(&self, mtb: &Mtb) -> Result<HttpResponse, HttpClientError> {
@@ -132,4 +136,21 @@ impl HttpClient {
             status_body: response.text().await.unwrap_or_default(),
         })
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use crate::http_client::HttpClient;
+
+    #[rstest]
+    #[case("http://localhost:8080", "http://localhost:8080")]
+    #[case("http://localhost:8080/", "http://localhost:8080")]
+    #[case("http://localhost:8080/api", "http://localhost:8080/api")]
+    #[case("http://localhost:8080/api/", "http://localhost:8080/api")]
+    #[case("http://localhost:8080/api//", "http://localhost:8080/api")]
+    fn should_return_clean_base_url(#[case] in_base_url: &str, #[case] expected_base_url: &str) {
+        assert_eq!(expected_base_url, HttpClient::base_url(in_base_url));
+    }
+
 }
