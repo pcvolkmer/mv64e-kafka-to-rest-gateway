@@ -40,6 +40,12 @@ impl HttpClient {
     ) -> Result<Self, HttpClientError> {
         let user_agent_string = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
+        // Allow invalid (self signed) certificates in dev/debug env only
+        #[cfg(not(debug_assertions))]
+        let accept_invalid_certificates = false;
+        #[cfg(debug_assertions)]
+        let accept_invalid_certificates = true;
+
         Ok(Self {
             base_url: if base_url.ends_with('/') {
                 base_url[0..base_url.len() - 2].to_string()
@@ -50,6 +56,7 @@ impl HttpClient {
             password,
             client: reqwest::Client::builder()
                 .user_agent(user_agent_string)
+                .danger_accept_invalid_certs(accept_invalid_certificates)
                 .build()
                 .map_err(|_| HttpClientError("Failed to build HTTP client".to_string()))?,
         })
