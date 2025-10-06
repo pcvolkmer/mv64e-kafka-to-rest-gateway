@@ -15,7 +15,7 @@ RUN cargo build --release
 FROM scratch
 LABEL org.opencontainers.image.source="https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-or-later"
-LABEL org.opencontainers.image.description="Send MV64e HTTP requests with DNPM V2.1 payload to a Kafka broker"
+LABEL org.opencontainers.image.description="Fetch MV64e Kafka records with DNPM V2.1 payload and send it to DNPM:DIP"
 
 COPY --from=build-stage /build/target/release/mv64e-kafka-to-rest-gateway .
 USER 65532
