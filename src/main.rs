@@ -28,14 +28,7 @@ struct ResponsePayload {
 #[cfg(not(test))]
 static CONFIG: LazyLock<Cli> = LazyLock::new(Cli::parse);
 
-async fn handle_record(payload: Mtb) -> Result<HttpResponse, HttpClientError> {
-    let client = HttpClient::new(
-        &CONFIG.dnpm_dip_uri,
-        CONFIG.dnpm_dip_username.clone(),
-        CONFIG.dnpm_dip_password.clone(),
-        CONFIG.dnpm_dip_ca_file.clone()
-    )?;
-
+async fn send_to_dip(payload: Mtb, client: &HttpClient) -> Result<HttpResponse, HttpClientError> {
     if let Some(metadata) = &payload.metadata {
         if !metadata.model_project_consent.provisions.is_empty()
             || metadata.research_consents.is_some()
@@ -136,6 +129,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .set("message.timeout.ms", "5000")
         .create()?;
 
+    let client = HttpClient::new(
+        &CONFIG.dnpm_dip_uri,
+        CONFIG.dnpm_dip_username.clone(),
+        CONFIG.dnpm_dip_password.clone(),
+        CONFIG.dnpm_dip_ca_file.clone()
+    ).map_err(|err| err.to_string())?;
+
     while let Ok(msg) = consumer.recv().await {
         let Some(Ok(payload)) = msg.payload_view::<str>() else {
             error!("Error getting payload");
@@ -157,7 +157,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             continue;
         };
 
-        match handle_record(payload).await {
+        match send_to_dip(payload, &client).await {
             Err(err) => error!("{}", err),
             Ok(response) => {
                 let response_payload = ResponsePayload {
