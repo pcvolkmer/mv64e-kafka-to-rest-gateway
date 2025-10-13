@@ -93,6 +93,7 @@ fn client_config() -> ClientConfig {
 async fn start_service(
     consumer: StreamConsumer,
     producer: &FutureProducer,
+    http_client: HttpClient,
 ) -> Result<(), Box<dyn Error>> {
     let client = HttpClient::new(
         &CONFIG.dnpm_dip_uri,
@@ -123,7 +124,7 @@ async fn start_service(
             continue;
         };
 
-        match send_to_dip(payload, &client).await {
+        match send_to_dip(payload, &http_client).await {
             Err(err) => error!("{}", err),
             Ok(response) => {
                 let response_payload = ResponsePayload {
@@ -212,7 +213,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .set("message.timeout.ms", "5000")
         .create()?;
 
-    start_service(consumer, producer).await
+    let http_client = HttpClient::new(
+        &CONFIG.dnpm_dip_uri,
+        CONFIG.dnpm_dip_username.clone(),
+        CONFIG.dnpm_dip_password.clone(),
+        CONFIG.dnpm_dip_ca_file.clone(),
+    )
+    .map_err(|err| err.to_string())?;
+
+    start_service(consumer, producer, http_client).await
 }
 
 // Test Configuration
