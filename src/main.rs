@@ -95,13 +95,9 @@ async fn start_service(
     producer: &FutureProducer,
     http_client: HttpClient,
 ) -> Result<(), Box<dyn Error>> {
-    let client = HttpClient::new(
-        &CONFIG.dnpm_dip_uri,
-        CONFIG.dnpm_dip_username.clone(),
-        CONFIG.dnpm_dip_password.clone(),
-        CONFIG.dnpm_dip_ca_file.clone(),
-    )
-    .map_err(|err| err.to_string())?;
+    let topic: &str = &CONFIG.topic.clone();
+    consumer.subscribe(&[topic])?;
+    info!("Kafka topic '{}' subscribed", CONFIG.topic);
 
     while let Ok(msg) = consumer.recv().await {
         let Some(Ok(payload)) = msg.payload_view::<str>() else {
@@ -199,12 +195,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .set("enable.auto.commit", "false")
         .set_log_level(RDKafkaLogLevel::Debug)
         .create()?;
-
-    let topic: &str = &CONFIG.topic.clone();
-
-    consumer.subscribe(&[topic])?;
-
-    info!("Kafka topic '{}' subscribed", CONFIG.topic);
 
     let mut producer_client_config = client_config();
 
