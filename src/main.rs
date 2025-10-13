@@ -8,7 +8,7 @@ use rdkafka::message::{BorrowedMessage, Headers};
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::{ClientConfig, Message};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::error::Error;
 use std::string::ToString;
 use std::sync::LazyLock;
@@ -90,51 +90,17 @@ fn client_config() -> ClientConfig {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    #[cfg(debug_assertions)]
-    {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .init();
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::INFO)
-            .init();
-    }
-
-    let mut consumer_client_config = client_config();
-
-    let consumer: StreamConsumer = consumer_client_config
-        .set("group.id", &CONFIG.group_id)
-        .set("enable.partition.eof", "false")
-        .set("auto.offset.reset", "earliest")
-        .set("enable.auto.commit", "false")
-        .set_log_level(RDKafkaLogLevel::Debug)
-        .create()?;
-
-    let topic: &str = &CONFIG.topic.clone();
-
-    consumer.subscribe(&[topic])?;
-
-    info!("Kafka topic '{}' subscribed", CONFIG.topic);
-
-    let mut producer_client_config = client_config();
-
-    let producer: &FutureProducer = &producer_client_config
-        .set("bootstrap.servers", &CONFIG.bootstrap_servers)
-        .set("message.timeout.ms", "5000")
-        .create()?;
-
+async fn start_service(
+    consumer: StreamConsumer,
+    producer: &FutureProducer,
+) -> Result<(), Box<dyn Error>> {
     let client = HttpClient::new(
         &CONFIG.dnpm_dip_uri,
         CONFIG.dnpm_dip_username.clone(),
         CONFIG.dnpm_dip_password.clone(),
-        CONFIG.dnpm_dip_ca_file.clone()
-    ).map_err(|err| err.to_string())?;
+        CONFIG.dnpm_dip_ca_file.clone(),
+    )
+    .map_err(|err| err.to_string())?;
 
     while let Ok(msg) = consumer.recv().await {
         let Some(Ok(payload)) = msg.payload_view::<str>() else {
@@ -205,6 +171,48 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    #[cfg(debug_assertions)]
+    {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .init();
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::INFO)
+            .init();
+    }
+
+    let mut consumer_client_config = client_config();
+
+    let consumer: StreamConsumer = consumer_client_config
+        .set("group.id", &CONFIG.group_id)
+        .set("enable.partition.eof", "false")
+        .set("auto.offset.reset", "earliest")
+        .set("enable.auto.commit", "false")
+        .set_log_level(RDKafkaLogLevel::Debug)
+        .create()?;
+
+    let topic: &str = &CONFIG.topic.clone();
+
+    consumer.subscribe(&[topic])?;
+
+    info!("Kafka topic '{}' subscribed", CONFIG.topic);
+
+    let mut producer_client_config = client_config();
+
+    let producer: &FutureProducer = &producer_client_config
+        .set("bootstrap.servers", &CONFIG.bootstrap_servers)
+        .set("message.timeout.ms", "5000")
+        .create()?;
+
+    start_service(consumer, producer).await
 }
 
 // Test Configuration
