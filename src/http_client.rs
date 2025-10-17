@@ -278,4 +278,45 @@ mod tests {
         assert!(result.is_ok());
         assert!(result.expect("ok").has_valid_response_code());
     }
+
+    #[tokio::test]
+    #[rstest]
+    #[case(200, true)]
+    #[case(201, true)]
+    #[case(400, true)]
+    #[case(422, true)]
+    #[case(500, false)]
+    async fn should_indicate_status_code(#[case] status_code: u16, #[case] expected: bool) {
+        let mock_server = MockServer::start();
+        let mock = mock_server.mock(|when, then| {
+            when.method(POST).path("/mtb/etl/patient-record");
+            then.status(status_code);
+        });
+
+        let mut mtb = Mtb::new_with_consent_rejected("12345678");
+        mtb.metadata = Some(MvhMetadata {
+            model_project_consent: ModelProjectConsent {
+                date: None,
+                provisions: vec![Provision {
+                    date: "2025-10-17".to_string(),
+                    provision_type: ConsentProvision::Permit,
+                    purpose: ModelProjectConsentPurpose::Sequencing,
+                }],
+                version: "1".to_string(),
+            },
+            mvh_metadata_type: MvhSubmissionType::Test,
+            research_consents: None,
+            reason_research_consent_missing: None,
+            transfer_tan: "42".to_string(),
+        });
+
+        let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
+            .expect("Could not create client");
+        let result = http_client.send_to_dip(mtb).await;
+
+        mock.assert();
+
+        assert!(result.is_ok());
+        assert_eq!(result.expect("ok").has_valid_response_code(), expected);
+    }
 }
