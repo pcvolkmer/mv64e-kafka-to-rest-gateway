@@ -1,6 +1,5 @@
 use crate::cli::Cli;
 use crate::http_client::HttpClient;
-use clap::Parser;
 use mv64e_mtb_dto::Mtb;
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
@@ -14,6 +13,9 @@ use std::string::ToString;
 use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::{error, info, warn};
+
+#[cfg(not(test))]
+use clap::Parser;
 
 mod cli;
 mod http_client;
