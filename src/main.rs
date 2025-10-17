@@ -1,7 +1,7 @@
 use crate::cli::Cli;
-use crate::http_client::{HttpClient, HttpClientError, HttpResponse};
+use crate::http_client::HttpClient;
 use clap::Parser;
-use mv64e_mtb_dto::{ConsentProvision, ModelProjectConsentPurpose, Mtb};
+use mv64e_mtb_dto::Mtb;
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::message::{BorrowedMessage, Headers};
@@ -27,27 +27,6 @@ struct ResponsePayload {
 
 #[cfg(not(test))]
 static CONFIG: LazyLock<Cli> = LazyLock::new(Cli::parse);
-
-async fn send_to_dip(payload: Mtb, client: &HttpClient) -> Result<HttpResponse, HttpClientError> {
-    if let Some(metadata) = &payload.metadata {
-        if metadata
-            .model_project_consent
-            .provisions
-            .iter()
-            .any(|provision| {
-                provision.purpose == ModelProjectConsentPurpose::Sequencing
-                    && provision.provision_type == ConsentProvision::Permit
-            })
-            || metadata.research_consents.is_some()
-        {
-            client.send_mtb_request(&payload).await
-        } else {
-            client.send_delete_request(&payload.patient.id).await
-        }
-    } else {
-        client.send_mtb_request(&payload).await
-    }
-}
 
 fn extract_request_id(msg: &BorrowedMessage) -> Option<String> {
     match msg.headers() {
@@ -127,7 +106,7 @@ async fn start_service(
             continue;
         };
 
-        match send_to_dip(payload, &http_client).await {
+        match http_client.send_to_dip(payload).await {
             Err(err) => error!("{}", err),
             Ok(response) => {
                 let response_payload = ResponsePayload {
@@ -237,113 +216,3 @@ static CONFIG: LazyLock<Cli> = LazyLock::new(|| Cli {
     ssl_key_file: None,
     ssl_key_password: None,
 });
-
-#[cfg(test)]
-#[allow(clippy::expect_used)]
-mod tests {
-    use super::*;
-    use httpmock::Method::{DELETE, POST};
-    use httpmock::MockServer;
-    use mv64e_mtb_dto::{
-        ConsentProvision, ModelProjectConsent, ModelProjectConsentPurpose, MvhMetadata,
-        MvhSubmissionType, Provision,
-    };
-
-    #[tokio::test]
-    async fn should_send_delete_to_dip_on_sequencing_deny() {
-        let mock_server = MockServer::start();
-        let mock = mock_server.mock(|when, then| {
-            when.method(DELETE).path("/mtb/etl/patient/12345678");
-            then.status(200);
-        });
-
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
-        mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
-                date: None,
-                provisions: vec![Provision {
-                    date: "2025-10-17".to_string(),
-                    provision_type: ConsentProvision::Deny,
-                    purpose: ModelProjectConsentPurpose::Sequencing,
-                }],
-                version: "1".to_string(),
-            },
-            mvh_metadata_type: MvhSubmissionType::Test,
-            research_consents: None,
-            reason_research_consent_missing: None,
-            transfer_tan: "42".to_string(),
-        });
-
-        let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
-            .expect("Could not create client");
-        let result = send_to_dip(mtb, &http_client).await;
-
-        mock.assert();
-
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn should_send_delete_to_dip_if_no_consent() {
-        let mock_server = MockServer::start();
-        let mock = mock_server.mock(|when, then| {
-            when.method(DELETE).path("/mtb/etl/patient/12345678");
-            then.status(200);
-        });
-
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
-        mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
-                date: None,
-                provisions: vec![],
-                version: "1".to_string(),
-            },
-            mvh_metadata_type: MvhSubmissionType::Test,
-            research_consents: None,
-            reason_research_consent_missing: None,
-            transfer_tan: "42".to_string(),
-        });
-
-        let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
-            .expect("Could not create client");
-        let result = send_to_dip(mtb, &http_client).await;
-
-        mock.assert();
-
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn should_send_update_to_dip_on_sequencing_permit() {
-        let mock_server = MockServer::start();
-        let mock = mock_server.mock(|when, then| {
-            when.method(POST).path("/mtb/etl/patient-record");
-            then.status(200);
-        });
-
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
-        mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
-                date: None,
-                provisions: vec![Provision {
-                    date: "2025-10-17".to_string(),
-                    provision_type: ConsentProvision::Permit,
-                    purpose: ModelProjectConsentPurpose::Sequencing,
-                }],
-                version: "1".to_string(),
-            },
-            mvh_metadata_type: MvhSubmissionType::Test,
-            research_consents: None,
-            reason_research_consent_missing: None,
-            transfer_tan: "42".to_string(),
-        });
-
-        let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
-            .expect("Could not create client");
-        let result = send_to_dip(mtb, &http_client).await;
-
-        mock.assert();
-
-        assert!(result.is_ok());
-    }
-}
