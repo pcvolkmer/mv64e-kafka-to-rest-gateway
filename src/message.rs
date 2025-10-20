@@ -1,8 +1,8 @@
 use mv64e_mtb_dto::Mtb;
+use rdkafka::Message as KafkaMessage;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use rdkafka::message::{BorrowedHeaders, BorrowedMessage, Headers};
-use rdkafka::Message as KafkaMessage;
 use std::sync::Arc;
 
 pub struct Message<'a> {
@@ -22,25 +22,13 @@ impl<'a> TryFrom<BorrowedMessage<'a>> for Message<'a> {
             return Err("Error getting key".into());
         };
 
-        let request_id = match msg.headers() {
-            None => None,
-            Some(headers) => {
-                if let Some(value) = headers.iter().find(|header| header.key == "requestId") {
-                    if let Some(value) = value.value {
-                        match str::from_utf8(value) {
-                            Ok(value) => Some(value.to_string()),
-                            Err(_) => None,
-                        }
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            }
-        };
-
-        let Some(request_id) = request_id else {
+        let request_id = if let Some(headers) = msg.headers()
+            && let Some(value) = headers.iter().find(|header| header.key == "requestId")
+            && let Some(value) = value.value
+            && let Ok(value) = str::from_utf8(value)
+        {
+            value.to_string()
+        } else {
             return Err("Error getting request ID".into());
         };
 
