@@ -1,13 +1,12 @@
 use crate::cli::Cli;
 use crate::http_client::HttpClient;
-use mv64e_mtb_dto::Mtb;
+use crate::message::Message;
 use rdkafka::config::RDKafkaLogLevel;
-use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
-use rdkafka::message::{BorrowedMessage, Headers};
+use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use rdkafka::{ClientConfig, Message};
+use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::error::Error;
 use std::string::ToString;
 use std::sync::LazyLock;
@@ -19,6 +18,7 @@ use clap::Parser;
 
 mod cli;
 mod http_client;
+mod message;
 
 #[derive(Serialize, Deserialize)]
 struct ResponsePayload {
@@ -29,26 +29,6 @@ struct ResponsePayload {
 
 #[cfg(not(test))]
 static CONFIG: LazyLock<Cli> = LazyLock::new(Cli::parse);
-
-fn extract_request_id(msg: &BorrowedMessage) -> Option<String> {
-    match msg.headers() {
-        None => None,
-        Some(headers) => {
-            if let Some(value) = headers
-                .iter()
-                .find(|header| header.key == "requestId")?
-                .value
-            {
-                match str::from_utf8(value) {
-                    Ok(value) => Some(value.to_string()),
-                    Err(_) => None,
-                }
-            } else {
-                None
-            }
-        }
-    }
-}
 
 fn client_config() -> ClientConfig {
     let mut client_config = ClientConfig::new();
@@ -88,31 +68,19 @@ async fn start_service(
     info!("Kafka topic '{}' subscribed", CONFIG.topic);
 
     while let Ok(msg) = consumer.recv().await {
-        let Some(Ok(payload)) = msg.payload_view::<str>() else {
-            error!("Error getting payload");
-            continue;
+        let msg = match Message::try_from(msg) {
+            Ok(msg) => msg,
+            Err(e) => {
+                error!(e);
+                continue;
+            }
         };
 
-        let Ok(payload) = serde_json::from_str::<Mtb>(payload) else {
-            error!("Error deserializing payload");
-            continue;
-        };
-
-        let Some(Ok(key)) = msg.key_view::<str>() else {
-            error!("Error getting key");
-            continue;
-        };
-
-        let Some(request_id) = extract_request_id(&msg) else {
-            error!("Error getting request_id");
-            continue;
-        };
-
-        match http_client.send_to_dip(payload).await {
+        match http_client.send_to_dip(&msg.payload()).await {
             Err(err) => error!("{}", err),
             Ok(response) => {
                 let response_payload = ResponsePayload {
-                    request_id: request_id.to_string(),
+                    request_id: msg.request_id(),
                     status_code: response.status_code,
                     status_body: serde_json::from_str::<Value>(&response.status_body)
                         .unwrap_or(json!({})),
@@ -121,8 +89,9 @@ async fn start_service(
                     error!("Error serializing response");
                     continue;
                 };
+                let key = msg.key();
                 let response_record = FutureRecord::to(&CONFIG.response_topic)
-                    .key(key)
+                    .key(&key)
                     .payload(&response_payload);
 
                 match if let Some(headers) = msg.headers() {
@@ -136,19 +105,20 @@ async fn start_service(
                     producer.send(response_record, Duration::from_secs(1)).await
                 } {
                     Ok(_) => {
-                        info!("Response for '{request_id}' sent successfully");
+                        info!("Response for '{}' sent successfully", msg.request_id());
                     }
                     Err((err, _)) => {
-                        error!("Could not send response for '{request_id}': {err}");
+                        error!("Could not send response for '{}': {err}", msg.request_id());
                     }
                 }
 
                 if response.has_valid_response_code() {
-                    consumer.commit_message(&msg, CommitMode::Async)?;
+                    let _ = msg.commit(&consumer);
                 } else {
                     warn!(
                         "Unexpected Status Code for Request '{}': HTTP {}",
-                        &request_id, response.status_code
+                        &msg.request_id(),
+                        response.status_code
                     );
                 }
             }

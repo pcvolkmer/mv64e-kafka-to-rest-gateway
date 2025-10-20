@@ -87,7 +87,7 @@ impl HttpClient {
         })
     }
 
-    pub async fn send_to_dip(&self, payload: Mtb) -> Result<HttpResponse, HttpClientError> {
+    pub async fn send_to_dip(&self, payload: &Mtb) -> Result<HttpResponse, HttpClientError> {
         if let Some(metadata) = &payload.metadata {
             if metadata
                 .model_project_consent
@@ -99,12 +99,12 @@ impl HttpClient {
                 })
                 || metadata.research_consents.is_some()
             {
-                self.send_mtb_request(&payload).await
+                self.send_mtb_request(payload).await
             } else {
                 self.send_delete_request(&payload.patient.id).await
             }
         } else {
-            self.send_mtb_request(&payload).await
+            self.send_mtb_request(payload).await
         }
     }
 
@@ -205,7 +205,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(mtb).await;
+        let result = http_client.send_to_dip(&mtb).await;
 
         mock.assert();
 
@@ -236,7 +236,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(mtb).await;
+        let result = http_client.send_to_dip(&mtb).await;
 
         mock.assert();
 
@@ -271,7 +271,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(mtb).await;
+        let result = http_client.send_to_dip(&mtb).await;
 
         mock.assert();
 
@@ -312,7 +312,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(mtb).await;
+        let result = http_client.send_to_dip(&mtb).await;
 
         mock.assert();
 
