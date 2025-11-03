@@ -1,5 +1,5 @@
 use mv64e_mtb_dto::{ConsentProvision, ModelProjectConsentPurpose, Mtb};
-use reqwest::Certificate;
+use reqwest::{Certificate, Error};
 use std::fmt::{Debug, Display, Formatter};
 use std::fs;
 use std::time::Duration;
@@ -25,6 +25,27 @@ pub struct HttpClientError(String);
 impl Display for HttpClientError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl From<Error> for HttpClientError {
+    fn from(err: Error) -> Self {
+        if err.is_status() {
+            match err.status() {
+                Some(status_code) => HttpClientError(format!(
+                    "Failed to send MTB request: HTTP {status_code} - {err}"
+                )),
+                _ => HttpClientError(format!("Failed to send MTB request: {err}")),
+            }
+        } else if err.is_timeout() {
+            HttpClientError("Failed to send MTB request: Timeout".to_string())
+        } else if err.is_redirect() {
+            HttpClientError("Failed to send MTB request: Redirect".to_string())
+        } else if err.is_connect() {
+            HttpClientError("Failed to send MTB request: Cannot connect".to_string())
+        } else {
+            HttpClientError(format!("Failed to send MTB request: {err}"))
+        }
     }
 }
 
@@ -117,9 +138,11 @@ impl HttpClient {
     }
 
     async fn send_mtb_request(&self, mtb: &Mtb) -> Result<HttpResponse, HttpClientError> {
+        let url = format!("{}/mtb/etl/patient-record", &self.base_url);
+        info!("Sending POST request to {}", url);
         let response = self
             .client
-            .post(format!("{}/mtb/etl/patient-record", &self.base_url))
+            .post(url)
             .basic_auth(
                 self.username.clone().unwrap_or("anonymous".to_string()),
                 self.password.clone(),
@@ -128,7 +151,7 @@ impl HttpClient {
             .json(&mtb)
             .send()
             .await
-            .map_err(|err| HttpClientError(format!("Failed to send MTB request: {err}")))?;
+            .map_err(HttpClientError::from)?;
 
         Ok(HttpResponse {
             status_code: response.status().as_u16(),
@@ -137,9 +160,11 @@ impl HttpClient {
     }
 
     async fn send_delete_request(&self, patient_id: &str) -> Result<HttpResponse, HttpClientError> {
+        let url = format!("{}/mtb/etl/patient/{}", &self.base_url, patient_id);
+        info!("Sending DELETE request to {}", url);
         let response = self
             .client
-            .delete(format!("{}/mtb/etl/patient/{}", &self.base_url, patient_id))
+            .delete(url)
             .basic_auth(
                 self.username.clone().unwrap_or("anonymous".to_string()),
                 self.password.clone(),
@@ -147,7 +172,7 @@ impl HttpClient {
             .timeout(Duration::from_secs(5))
             .send()
             .await
-            .map_err(|err| HttpClientError(format!("Failed to send delete request: {err}")))?;
+            .map_err(HttpClientError::from)?;
 
         Ok(HttpResponse {
             status_code: response.status().as_u16(),
