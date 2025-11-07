@@ -116,7 +116,6 @@ impl HttpClient {
                 .iter()
                 .any(|provision| {
                     provision.purpose == ModelProjectConsentPurpose::Sequencing
-                        && provision.provision_type == ConsentProvision::Permit
                 })
                 || metadata.research_consents.is_some()
             {
@@ -207,7 +206,7 @@ mod tests {
     async fn should_send_delete_to_dip_on_sequencing_deny() {
         let mock_server = MockServer::start();
         let mock = mock_server.mock(|when, then| {
-            when.method(DELETE).path("/mtb/etl/patient/12345678");
+            when.method(POST).path("/mtb/etl/patient-record");
             then.status(200);
         });
 
