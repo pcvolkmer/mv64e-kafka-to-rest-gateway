@@ -5,7 +5,7 @@ use rdkafka::error::KafkaResult;
 use rdkafka::message::{BorrowedHeaders, BorrowedMessage, Headers};
 use std::sync::Arc;
 
-pub struct Message<'a> {
+pub(crate) struct Message<'a> {
     msg: BorrowedMessage<'a>,
     key: String,
     request_id: String,

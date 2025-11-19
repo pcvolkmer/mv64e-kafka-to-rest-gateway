@@ -1,11 +1,11 @@
-use mv64e_mtb_dto::{ConsentProvision, ModelProjectConsentPurpose, Mtb};
+use mv64e_mtb_dto::{ModelProjectConsentPurpose, Mtb};
 use reqwest::{Certificate, Error};
 use std::fmt::{Debug, Display, Formatter};
 use std::fs;
 use std::time::Duration;
 use tracing::info;
 
-pub struct HttpResponse {
+pub(crate) struct HttpResponse {
     pub status_code: u16,
     pub status_body: String,
 }
@@ -20,7 +20,7 @@ impl HttpResponse {
 }
 
 #[derive(Debug, Clone)]
-pub struct HttpClientError(String);
+pub(crate) struct HttpClientError(String);
 
 impl Display for HttpClientError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -49,7 +49,7 @@ impl From<Error> for HttpClientError {
     }
 }
 
-pub struct HttpClient {
+pub(crate) struct HttpClient {
     base_url: String,
     username: Option<String>,
     password: Option<String>,

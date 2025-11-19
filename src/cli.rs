@@ -3,7 +3,7 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about)]
 #[command(arg_required_else_help(true))]
-pub struct Cli {
+pub(crate) struct Cli {
     #[arg(
         long,
         env = "KAFKA_BOOTSTRAP_SERVERS",
