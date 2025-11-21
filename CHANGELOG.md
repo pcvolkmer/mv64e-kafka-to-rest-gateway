@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.1.1...v0.2.0) (2025-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* downgrade of mtb-dto due to delayed update of DNPM:DIP ([#8](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/issues/8))
+
+### Bug Fixes
+
+* downgrade of mtb-dto due to delayed update of DNPM:DIP ([#8](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/issues/8)) ([c1448ce](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/commit/c1448cedd74178974b656bbc904d12630c4dc8d3))
+
 ## [0.1.1](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.1.0...v0.1.1) (2025-11-21)
 
 
