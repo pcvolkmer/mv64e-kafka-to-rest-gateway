@@ -1,12 +1,18 @@
 name: "Run build and deploy"
 
 on:
-  push:
-    branches: [ 'master' ]
+  release:
+    types: [ 'published' ]
+
+permissions:
+  contents: read
 
 jobs:
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -22,5 +28,7 @@ jobs:
 
       - name: Execute image build and push
         run: |
-          docker build -t ghcr.io/pcvolkmer/mv64e-kafka-to-rest-gateway .
-          docker push ghcr.io/pcvolkmer/mv64e-kafka-to-rest-gateway
+          docker build -t ghcr.io/${{ github.repository }} .
+          docker tag ghcr.io/${{ github.repository }} ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          docker push ghcr.io/${{ github.repository }}
+          docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
