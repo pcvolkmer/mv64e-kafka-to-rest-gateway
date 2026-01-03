@@ -5,6 +5,7 @@ RUN apk add cmake make musl-dev g++ perl
 
 WORKDIR /build
 COPY Cargo.toml ./
+COPY Cargo.lock ./
 COPY src ./src
 COPY test-files ./test-files
 # Run tests before release build
