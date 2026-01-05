@@ -1,12 +1,12 @@
 use crate::cli::Cli;
 use crate::http_client::HttpClient;
 use crate::message::Message;
+use rdkafka::ClientConfig;
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::error::Error;
 use std::string::ToString;
 use std::sync::LazyLock;

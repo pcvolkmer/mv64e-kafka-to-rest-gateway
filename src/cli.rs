@@ -32,23 +32,11 @@ pub(crate) struct Cli {
         help = "Kafka Group ID"
     )]
     pub group_id: String,
-    #[arg(
-        long,
-        env = "DNPM_DIP_URI",
-        help = "DNPM:DIP URI for API requests"
-    )]
+    #[arg(long, env = "DNPM_DIP_URI", help = "DNPM:DIP URI for API requests")]
     pub dnpm_dip_uri: String,
-    #[arg(
-        long,
-        env = "DNPM_DIP_USERNAME",
-        help = "DNPM:DIP Username"
-    )]
+    #[arg(long, env = "DNPM_DIP_USERNAME", help = "DNPM:DIP Username")]
     pub dnpm_dip_username: Option<String>,
-    #[arg(
-        long,
-        env = "DNPM_DIP_PASSWORD",
-        help = "DNPM:DIP Password"
-    )]
+    #[arg(long, env = "DNPM_DIP_PASSWORD", help = "DNPM:DIP Password")]
     pub dnpm_dip_password: Option<String>,
     #[arg(
         long,

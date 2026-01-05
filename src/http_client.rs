@@ -114,9 +114,7 @@ impl HttpClient {
                 .model_project_consent
                 .provisions
                 .iter()
-                .any(|provision| {
-                    provision.purpose == ModelProjectConsentPurpose::Sequencing
-                })
+                .any(|provision| provision.purpose == ModelProjectConsentPurpose::Sequencing)
                 || metadata.research_consents.is_some()
             {
                 self.send_mtb_request(payload).await
