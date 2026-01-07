@@ -8,6 +8,7 @@ use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::error::Error;
+use std::str::FromStr;
 use std::string::ToString;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -15,6 +16,7 @@ use tracing::{error, info, warn};
 
 #[cfg(not(test))]
 use clap::Parser;
+use rdkafka::message::Headers;
 
 mod cli;
 mod http_client;
@@ -25,6 +27,35 @@ struct ResponsePayload {
     request_id: String,
     status_code: u16,
     status_body: Value,
+}
+
+/// An enumeration representing HTTP request methods in Kafka record header `requestMethod`.
+///
+/// # Variants
+///
+/// * `Post` - Represents an HTTP POST request. This is the default variant.
+/// * `Delete` - Represents an HTTP DELETE request.
+///
+/// # Derives
+///
+/// * `Default` - The `Post` variant will be used as the default value for this enum.
+/// * `Debug` - Enables formatting and debugging capabilities for this enum.
+#[derive(Default, Debug)]
+enum RequestMethod {
+    #[default]
+    Post,
+    Delete,
+}
+
+impl FromStr for RequestMethod {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "DELETE" => Ok(RequestMethod::Delete),
+            _ => Ok(RequestMethod::Post),
+        }
+    }
 }
 
 #[cfg(not(test))]
@@ -76,7 +107,22 @@ async fn start_service(
             }
         };
 
-        match http_client.send_to_dip(&msg.payload()).await {
+        let request_method = match msg.headers() {
+            Some(headers) => headers
+                .iter()
+                .filter(|header| header.key == "requestMethod")
+                .filter_map(|header| header.value)
+                .map(|value| str::from_utf8(value).unwrap_or_default())
+                .map(|value| RequestMethod::from_str(value).unwrap_or_default())
+                .last()
+                .unwrap_or_default(),
+            None => RequestMethod::default(),
+        };
+
+        match http_client
+            .send_to_dip(&msg.payload(), request_method)
+            .await
+        {
             Err(err) => error!("{}", err),
             Ok(response) => {
                 let response_payload = ResponsePayload {
