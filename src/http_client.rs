@@ -1,4 +1,5 @@
-use mv64e_mtb_dto::{ModelProjectConsentPurpose, Mtb};
+use crate::RequestMethod;
+use mv64e_mtb_dto::Mtb;
 use reqwest::{Certificate, Error};
 use std::fmt::{Debug, Display, Formatter};
 use std::fs;
@@ -108,21 +109,14 @@ impl HttpClient {
         })
     }
 
-    pub async fn send_to_dip(&self, payload: &Mtb) -> Result<HttpResponse, HttpClientError> {
-        if let Some(metadata) = &payload.metadata {
-            if metadata
-                .model_project_consent
-                .provisions
-                .iter()
-                .any(|provision| provision.purpose == ModelProjectConsentPurpose::Sequencing)
-                || metadata.research_consents.is_some()
-            {
-                self.send_mtb_request(payload).await
-            } else {
-                self.send_delete_request(&payload.patient.id).await
-            }
-        } else {
-            self.send_mtb_request(payload).await
+    pub async fn send_to_dip(
+        &self,
+        payload: &Mtb,
+        request_method: RequestMethod,
+    ) -> Result<HttpResponse, HttpClientError> {
+        match request_method {
+            RequestMethod::Post => self.send_mtb_request(payload).await,
+            RequestMethod::Delete => self.send_delete_request(&payload.patient.id).await,
         }
     }
 
@@ -181,6 +175,7 @@ impl HttpClient {
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
+    use crate::RequestMethod;
     use crate::http_client::HttpClient;
     use httpmock::Method::{DELETE, POST};
     use httpmock::MockServer;
@@ -201,10 +196,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_send_delete_to_dip_on_sequencing_deny() {
+    async fn should_send_delete_to_dip() {
         let mock_server = MockServer::start();
         let mock = mock_server.mock(|when, then| {
-            when.method(POST).path("/mtb/etl/patient-record");
+            when.method(DELETE).path("/mtb/etl/patient/12345678");
             then.status(200);
         });
 
@@ -227,7 +222,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(&mtb).await;
+        let result = http_client.send_to_dip(&mtb, RequestMethod::Delete).await;
 
         mock.assert();
 
@@ -236,38 +231,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_send_delete_to_dip_if_no_consent() {
-        let mock_server = MockServer::start();
-        let mock = mock_server.mock(|when, then| {
-            when.method(DELETE).path("/mtb/etl/patient/12345678");
-            then.status(200);
-        });
-
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
-        mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
-                date: None,
-                provisions: vec![],
-                version: "1".to_string(),
-            },
-            mvh_metadata_type: MvhSubmissionType::Test,
-            research_consents: None,
-            reason_research_consent_missing: None,
-            transfer_tan: "42".to_string(),
-        });
-
-        let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
-            .expect("Could not create client");
-        let result = http_client.send_to_dip(&mtb).await;
-
-        mock.assert();
-
-        assert!(result.is_ok());
-        assert!(result.expect("ok").has_valid_response_code());
-    }
-
-    #[tokio::test]
-    async fn should_send_update_to_dip_on_sequencing_permit() {
+    async fn should_send_update_to_dip() {
         let mock_server = MockServer::start();
         let mock = mock_server.mock(|when, then| {
             when.method(POST).path("/mtb/etl/patient-record");
@@ -293,7 +257,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(&mtb).await;
+        let result = http_client.send_to_dip(&mtb, RequestMethod::Post).await;
 
         mock.assert();
 
@@ -334,7 +298,7 @@ mod tests {
 
         let http_client = HttpClient::new(&mock_server.base_url(), None, None, None)
             .expect("Could not create client");
-        let result = http_client.send_to_dip(&mtb).await;
+        let result = http_client.send_to_dip(&mtb, RequestMethod::Post).await;
 
         mock.assert();
 
