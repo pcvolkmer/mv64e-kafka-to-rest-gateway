@@ -79,6 +79,12 @@ Kafka-Records müssen eine(n)
   Anfragen ohne `requestId` im Header werden abgelehnt.
 * **Payload** haben, die dem DNPM-Datenmodell 2.1 entspricht.
 
+Zudem soll ein Kafka-Record einen **Header** mit Wert für `requestMethod` haben um zu bestimmen, welcher HTTP-Request
+verwendet werden soll.
+Der Wert kann entweder `POST` oder `DELETE` sein.
+Ist der Header nicht angegeben, wird `POST` verwendet und entsprechend werden Patientendaten aktualisiert.
+Bei einem `DELETE` werden die Patientendaten gelöscht.
+
 Eine Prüfung auf MV- oder Forschungs-Consent findet nicht statt.
 
 ## HTTP-Requests zu DNPM:DIP
