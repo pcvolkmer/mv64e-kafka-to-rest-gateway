@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.3.0...v0.4.0) (2026-01-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* use kafka record header to determine HTTP request method ([#12](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/issues/12))
+
+### Features
+
+* use kafka record header to determine HTTP request method ([#12](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/issues/12)) ([24a00a4](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/commit/24a00a4be3740613d190d7700182e473cd25f1c5))
+
 ## [0.3.0](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.2.0...v0.3.0) (2025-12-15)
 
 
