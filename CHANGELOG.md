@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.4.0...v0.4.1) (2026-03-05)
+
+
+### Features
+
+* extend logging if deserialization fails ([9f57bfc](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/commit/9f57bfca4da15640afad7ca83ad90086afb22b78))
+
 ## [0.4.0](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.3.0...v0.4.0) (2026-01-07)
 
 
