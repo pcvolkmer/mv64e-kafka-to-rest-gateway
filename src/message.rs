@@ -1,8 +1,8 @@
 use mv64e_mtb_dto::Mtb;
-use rdkafka::Message as KafkaMessage;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use rdkafka::message::{BorrowedHeaders, BorrowedMessage, Headers};
+use rdkafka::Message as KafkaMessage;
 use std::sync::Arc;
 
 pub(crate) struct Message<'a> {
@@ -36,8 +36,9 @@ impl<'a> TryFrom<BorrowedMessage<'a>> for Message<'a> {
             return Err("Error getting payload".into());
         };
 
-        let Ok(payload) = serde_json::from_str::<Mtb>(payload) else {
-            return Err("Error deserializing payload".into());
+        let payload = match serde_json::from_str::<Mtb>(payload) {
+            Ok(payload) => payload,
+            Err(err) => return Err(format!("Error deserializing payload: {err}").into()),
         };
 
         Ok(Message::<'a> {
