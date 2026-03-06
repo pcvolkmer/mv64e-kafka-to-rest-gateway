@@ -1,12 +1,12 @@
 use crate::cli::Cli;
 use crate::http_client::HttpClient;
-use crate::message::Message;
-use rdkafka::ClientConfig;
+use crate::message::{Message, MessageError};
 use rdkafka::config::RDKafkaLogLevel;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::producer::{FutureProducer, FutureRecord};
+use rdkafka::ClientConfig;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::error::Error;
 use std::str::FromStr;
 use std::string::ToString;
@@ -101,10 +101,44 @@ async fn start_service(
     while let Ok(msg) = consumer.recv().await {
         let msg = match Message::try_from(msg) {
             Ok(msg) => msg,
-            Err(e) => {
-                error!(e);
-                continue;
-            }
+            Err(err) => match err.clone() {
+                MessageError::KeyExtraction | MessageError::RequestIdExtraction => {
+                    error!("{}", err);
+                    continue;
+                }
+                MessageError::PayloadExtraction {
+                    key, request_id, ..
+                }
+                | MessageError::PayloadDeserialization {
+                    key, request_id, ..
+                } => {
+                    error!("{}", err);
+
+                    let response_payload = ResponsePayload {
+                        request_id: request_id.clone(),
+                        status_code: 999,
+                        status_body: json!({ "issues": [
+                            {
+                                "severity": "fatal",
+                                "message": err.to_string()
+                            }
+                        ]}),
+                    };
+
+                    let Ok(response_payload) = serde_json::to_string(&response_payload) else {
+                        error!("Error serializing response");
+                        continue;
+                    };
+
+                    let response_record = FutureRecord::to(&CONFIG.response_topic)
+                        .key(&key)
+                        .payload(&response_payload);
+
+                    let _ = producer.send(response_record, Duration::from_secs(1)).await;
+
+                    continue;
+                }
+            },
         };
 
         let request_method = match msg.headers() {

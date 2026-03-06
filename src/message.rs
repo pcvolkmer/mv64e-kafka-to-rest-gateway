@@ -3,7 +3,43 @@ use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use rdkafka::message::{BorrowedHeaders, BorrowedMessage, Headers};
 use rdkafka::Message as KafkaMessage;
+use std::error::Error;
+use std::fmt::{Debug, Display};
 use std::sync::Arc;
+
+#[derive(Clone, Debug)]
+pub(crate) enum MessageError {
+    KeyExtraction,
+    RequestIdExtraction,
+    PayloadExtraction {
+        key: String,
+        request_id: String,
+    },
+    PayloadDeserialization {
+        key: String,
+        request_id: String,
+        msg: String,
+    },
+}
+
+impl Display for MessageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MessageError::KeyExtraction => write!(f, "Error extracting key"),
+            MessageError::RequestIdExtraction => write!(f, "Error extracting request ID"),
+            MessageError::PayloadExtraction { request_id, .. } => {
+                write!(f, "Error extracting payload for '{request_id}'")
+            }
+            MessageError::PayloadDeserialization {
+                request_id, msg, ..
+            } => {
+                write!(f, "Error deserializing payload for '{request_id}': {msg}")
+            }
+        }
+    }
+}
+
+impl Error for MessageError {}
 
 pub(crate) struct Message<'a> {
     msg: BorrowedMessage<'a>,
@@ -13,13 +49,13 @@ pub(crate) struct Message<'a> {
 }
 
 impl<'a> TryFrom<BorrowedMessage<'a>> for Message<'a> {
-    type Error = String;
+    type Error = MessageError;
 
-    fn try_from(msg: BorrowedMessage<'a>) -> Result<Message<'a>, String> {
+    fn try_from(msg: BorrowedMessage<'a>) -> Result<Message<'a>, MessageError> {
         let key = if let Some(Ok(key)) = msg.key_view::<str>() {
             key.to_string()
         } else {
-            return Err("Error getting key".into());
+            return Err(MessageError::KeyExtraction);
         };
 
         let request_id = if let Some(headers) = msg.headers()
@@ -29,16 +65,22 @@ impl<'a> TryFrom<BorrowedMessage<'a>> for Message<'a> {
         {
             value.to_string()
         } else {
-            return Err("Error getting request ID".into());
+            return Err(MessageError::RequestIdExtraction);
         };
 
         let Some(Ok(payload)) = msg.payload_view::<str>() else {
-            return Err("Error getting payload".into());
+            return Err(MessageError::PayloadExtraction { key, request_id });
         };
 
         let payload = match serde_json::from_str::<Mtb>(payload) {
             Ok(payload) => payload,
-            Err(err) => return Err(format!("Error deserializing payload: {err}").into()),
+            Err(err) => {
+                return Err(MessageError::PayloadDeserialization {
+                    key,
+                    request_id,
+                    msg: err.to_string(),
+                });
+            }
         };
 
         Ok(Message::<'a> {
