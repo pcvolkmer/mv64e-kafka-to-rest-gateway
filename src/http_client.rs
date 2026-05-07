@@ -138,7 +138,6 @@ impl HttpClient {
                 self.username.clone().unwrap_or("anonymous".to_string()),
                 self.password.clone(),
             )
-            .timeout(Duration::from_secs(5))
             .json(&mtb)
             .send()
             .await
@@ -175,8 +174,8 @@ impl HttpClient {
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
-    use crate::RequestMethod;
     use crate::http_client::HttpClient;
+    use crate::RequestMethod;
     use httpmock::Method::{DELETE, POST};
     use httpmock::MockServer;
     use mv64e_mtb_dto::{
