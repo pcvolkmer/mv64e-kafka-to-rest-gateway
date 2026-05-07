@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.4.2...v0.4.3) (2026-05-07)
+
+
+### Features
+
+* no explicit http timeout ([a24ade6](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/commit/a24ade6f50c1db2f08e2d5d223d983a8bf655951))
+
 ## [0.4.2](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.4.1...v0.4.2) (2026-03-06)
 
 
