@@ -1036,8 +1036,8 @@ dependencies = [
 
 [[package]]
 name = "mv64e-mtb-dto"
-version = "0.2.0"
-source = "git+https://github.com/dnpm-dip/mv64e-mtb-dto-rs?tag=v0.2.0#8c5fdb510ffa73b941150fcf4956ca71feeda5f6"
+version = "0.3.0"
+source = "git+https://github.com/dnpm-dip/mv64e-mtb-dto-rs?tag=v0.3.0#b3c57f424841c72b65d149abf174161c2554f228"
 dependencies = [
  "regex",
  "serde",
