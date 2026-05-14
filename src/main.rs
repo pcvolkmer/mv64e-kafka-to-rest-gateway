@@ -192,9 +192,7 @@ async fn start_service(
                     }
                 }
 
-                if response.has_valid_response_code() {
-                    let _ = msg.commit(&consumer);
-                } else {
+                if !response.has_valid_response_code() {
                     warn!(
                         "Unexpected Status Code for Request '{}': HTTP {}",
                         &msg.request_id(),
@@ -230,7 +228,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .set("group.id", &CONFIG.group_id)
         .set("enable.partition.eof", "false")
         .set("auto.offset.reset", "earliest")
-        .set("enable.auto.commit", "false")
+        .set("enable.auto.commit", "true")
         .set_log_level(RDKafkaLogLevel::Debug)
         .create()?;
 
