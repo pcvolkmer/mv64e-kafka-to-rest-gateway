@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.4.3...v0.4.4) (2026-05-18)
+
+
+### Features
+
+* auto commit kafka records ([#22](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/issues/22)) ([07fb6a1](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/commit/07fb6a1f9a7b3e6700cd5ac6c2625f26b35d59d2))
+
 ## [0.4.3](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.4.2...v0.4.3) (2026-05-07)
 
 
