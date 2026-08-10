@@ -13,19 +13,20 @@ clap = { version = "4.6", features = ["derive", "env"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 reqwest = { version = "0.13", features = ["default-tls", "json"], default-features = false }
-tokio = { version = "1.52", features = ["rt-multi-thread", "macros", "time"] }
+tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "time"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rdkafka = { version = "0.39", features = ["cmake-build", "libz-static", "ssl-vendored", "curl-static"] }
 # DTOs
-mv64e-mtb-dto = { git = "https://github.com/dnpm-dip/mv64e-mtb-dto-rs", tag = "v0.3.0" }
+mv64e-mtb-model = { git = "https://github.com/pcvolkmer/mv64e-mtb-model" }
 
 [dev-dependencies]
 tower = "0.5"
 http-body-util = "0.1"
-mockall = "0.14"
+mockall = "0.15"
 rstest = "0.26"
 httpmock = "0.8"
+chrono = "0.4"
 
 # Lints
 

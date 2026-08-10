@@ -1,8 +1,8 @@
-use mv64e_mtb_dto::Mtb;
+use mv64e_mtb_model::models::PatientRecord;
+use rdkafka::Message as KafkaMessage;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::error::KafkaResult;
 use rdkafka::message::{BorrowedHeaders, BorrowedMessage, Headers};
-use rdkafka::Message as KafkaMessage;
 use std::error::Error;
 use std::fmt::{Debug, Display};
 use std::sync::Arc;
@@ -45,7 +45,7 @@ pub(crate) struct Message<'a> {
     msg: BorrowedMessage<'a>,
     key: String,
     request_id: String,
-    payload: Arc<Mtb>,
+    payload: Arc<PatientRecord>,
 }
 
 impl<'a> TryFrom<BorrowedMessage<'a>> for Message<'a> {
@@ -72,7 +72,7 @@ impl<'a> TryFrom<BorrowedMessage<'a>> for Message<'a> {
             return Err(MessageError::PayloadExtraction { key, request_id });
         };
 
-        let payload = match serde_json::from_str::<Mtb>(payload) {
+        let payload = match serde_json::from_str::<PatientRecord>(payload) {
             Ok(payload) => payload,
             Err(err) => {
                 return Err(MessageError::PayloadDeserialization {
@@ -105,7 +105,7 @@ impl Message<'_> {
         self.msg.headers()
     }
 
-    pub(crate) fn payload(&self) -> Arc<Mtb> {
+    pub(crate) fn payload(&self) -> Arc<PatientRecord> {
         self.payload.clone()
     }
 
