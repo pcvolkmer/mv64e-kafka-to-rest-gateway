@@ -1,5 +1,5 @@
 use crate::RequestMethod;
-use mv64e_mtb_dto::Mtb;
+use mv64e_mtb_model::models::PatientRecord;
 use reqwest::{Certificate, Error};
 use std::fmt::{Debug, Display, Formatter};
 use std::fs;
@@ -111,7 +111,7 @@ impl HttpClient {
 
     pub async fn send_to_dip(
         &self,
-        payload: &Mtb,
+        payload: &PatientRecord,
         request_method: RequestMethod,
     ) -> Result<HttpResponse, HttpClientError> {
         match request_method {
@@ -128,7 +128,7 @@ impl HttpClient {
         }
     }
 
-    async fn send_mtb_request(&self, mtb: &Mtb) -> Result<HttpResponse, HttpClientError> {
+    async fn send_mtb_request(&self, mtb: &PatientRecord) -> Result<HttpResponse, HttpClientError> {
         let url = format!("{}/mtb/etl/patient-record", &self.base_url);
         info!("Sending POST request to {}", url);
         let response = self
@@ -174,15 +174,18 @@ impl HttpClient {
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
-    use crate::http_client::HttpClient;
     use crate::RequestMethod;
+    use crate::http_client::HttpClient;
+    use chrono::NaiveDate;
     use httpmock::Method::{DELETE, POST};
     use httpmock::MockServer;
-    use mv64e_mtb_dto::{
-        ConsentProvision, ModelProjectConsent, ModelProjectConsentPurpose, Mtb, MvhMetadata,
-        MvhSubmissionType, Provision,
+    use mv64e_mtb_model::models::{
+        ConsentProvisionType, ModelProjectConsentPurpose, MvhMetadata,
+        MvhMetadataModelProjectConsent, MvhMetadataModelProjectConsentProvisionsInner,
+        MvhSubmissionType, PatientRecord,
     };
     use rstest::rstest;
+    use std::str::FromStr;
 
     #[rstest]
     #[case("http://localhost:8080", "http://localhost:8080")]
@@ -202,20 +205,21 @@ mod tests {
             then.status(200);
         });
 
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
+        let mut mtb = PatientRecord::new_with_consent_rejected("12345678");
         mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
+            model_project_consent: MvhMetadataModelProjectConsent {
                 date: None,
-                provisions: vec![Provision {
-                    date: "2025-10-17".to_string(),
-                    provision_type: ConsentProvision::Deny,
+                provisions: vec![MvhMetadataModelProjectConsentProvisionsInner {
+                    date: NaiveDate::from_str("2025-10-17").expect("valid date expected"),
+                    r#type: ConsentProvisionType::Deny,
                     purpose: ModelProjectConsentPurpose::Sequencing,
                 }],
                 version: "1".to_string(),
             },
-            mvh_metadata_type: MvhSubmissionType::Test,
+            r#type: MvhSubmissionType::Test,
             research_consents: None,
             reason_research_consent_missing: None,
+            episode_of_care: None,
             transfer_tan: "42".to_string(),
         });
 
@@ -237,20 +241,21 @@ mod tests {
             then.status(201);
         });
 
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
+        let mut mtb = PatientRecord::new_with_consent_rejected("12345678");
         mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
+            model_project_consent: MvhMetadataModelProjectConsent {
                 date: None,
-                provisions: vec![Provision {
-                    date: "2025-10-17".to_string(),
-                    provision_type: ConsentProvision::Permit,
+                provisions: vec![MvhMetadataModelProjectConsentProvisionsInner {
+                    date: NaiveDate::from_str("2025-10-17").expect("valid date expected"),
+                    r#type: ConsentProvisionType::Permit,
                     purpose: ModelProjectConsentPurpose::Sequencing,
                 }],
                 version: "1".to_string(),
             },
-            mvh_metadata_type: MvhSubmissionType::Test,
+            r#type: MvhSubmissionType::Test,
             research_consents: None,
             reason_research_consent_missing: None,
+            episode_of_care: None,
             transfer_tan: "42".to_string(),
         });
 
@@ -278,20 +283,21 @@ mod tests {
             then.status(status_code);
         });
 
-        let mut mtb = Mtb::new_with_consent_rejected("12345678");
+        let mut mtb = PatientRecord::new_with_consent_rejected("12345678");
         mtb.metadata = Some(MvhMetadata {
-            model_project_consent: ModelProjectConsent {
+            model_project_consent: MvhMetadataModelProjectConsent {
                 date: None,
-                provisions: vec![Provision {
-                    date: "2025-10-17".to_string(),
-                    provision_type: ConsentProvision::Permit,
+                provisions: vec![MvhMetadataModelProjectConsentProvisionsInner {
+                    date: NaiveDate::from_str("2025-10-17").expect("valid date expected"),
+                    r#type: ConsentProvisionType::Permit,
                     purpose: ModelProjectConsentPurpose::Sequencing,
                 }],
                 version: "1".to_string(),
             },
-            mvh_metadata_type: MvhSubmissionType::Test,
+            r#type: MvhSubmissionType::Test,
             research_consents: None,
             reason_research_consent_missing: None,
+            episode_of_care: None,
             transfer_tan: "42".to_string(),
         });
 
