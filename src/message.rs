@@ -109,6 +109,7 @@ impl Message<'_> {
         self.payload.clone()
     }
 
+    #[allow(unused)]
     pub(crate) fn commit(self, consumer: &StreamConsumer) -> KafkaResult<()> {
         consumer.commit_message(&self.msg, CommitMode::Async)
     }
