@@ -159,7 +159,6 @@ impl HttpClient {
                 self.username.clone().unwrap_or("anonymous".to_string()),
                 self.password.clone(),
             )
-            .timeout(Duration::from_secs(5))
             .send()
             .await
             .map_err(HttpClientError::from)?;
