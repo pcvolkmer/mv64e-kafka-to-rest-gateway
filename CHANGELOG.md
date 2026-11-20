@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.5.1...v0.5.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* use default request timeout for delete requests ([#28](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/issues/28)) ([a719706](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/commit/a71970604b53debce30e1d888e8faba0f16c1b52))
+
 ## [0.5.1](https://github.com/pcvolkmer/mv64e-kafka-to-rest-gateway/compare/v0.5.0...v0.5.1) (2026-11-02)
 
 
