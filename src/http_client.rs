@@ -85,13 +85,13 @@ impl HttpClient {
                     _ => {
                         return Err(HttpClientError(
                             "Failed to load certificate from a ca-file".to_string(),
-                        ))?;
+                        ));
                     }
                 },
                 _ => {
                     return Err(HttpClientError(
                         "Failed to load certificate from a ca-file".to_string(),
-                    ))?;
+                    ));
                 }
             };
             client_builder.add_root_certificate(cert)
@@ -129,7 +129,7 @@ impl HttpClient {
     }
 
     async fn send_mtb_request(&self, mtb: &PatientRecord) -> Result<HttpResponse, HttpClientError> {
-        let url = format!("{}/mtb/etl/patient-record", &self.base_url);
+        let url = format!("{}/mtb/etl/patient-record", self.base_url);
         info!("Sending POST request to {}", url);
         let response = self
             .client
@@ -150,7 +150,7 @@ impl HttpClient {
     }
 
     async fn send_delete_request(&self, patient_id: &str) -> Result<HttpResponse, HttpClientError> {
-        let url = format!("{}/mtb/etl/patient/{}", &self.base_url, patient_id);
+        let url = format!("{}/mtb/etl/patient/{}", self.base_url, patient_id);
         info!("Sending DELETE request to {}", url);
         let response = self
             .client
